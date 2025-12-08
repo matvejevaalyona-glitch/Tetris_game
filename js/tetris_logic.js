@@ -1,4 +1,4 @@
-import { COLS, ROWS, SHAPES, SPAWN_OFFSETS, KICKS_JLSTZ, KICKS_I, SCORING, VISIBLE_ROWS } from './constants.js';
+import { COLS, ROWS, SHAPES, SPAWN_OFFSETS, KICKS_JLSTZ, KICKS_I, SCORING, VISIBLE_ROWS, COLORS } from './constants.js';
 
 export class TetrisLogic {
     constructor(audioManager) {

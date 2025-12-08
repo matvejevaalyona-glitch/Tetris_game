@@ -26,7 +26,7 @@
             </div>
             <div class="next-piece">
                 <h3>Next</h3>
-                <canvas id="nextCanvas" width="120" height="120"></canvas>
+                <canvas id="nextCanvas" width="120" height="250"></canvas>
             </div>
             <div class="hold-piece">
                 <h3>Hold</h3>
@@ -36,30 +36,42 @@
                 <h3>Controls</h3>
                 <p>← → : Move</p>
                 <p>↓ : Soft Drop</p>
-                <p>↑ / X : Rotate</p>
+                <p>↑ / X : Rotate CW</p>
+                <p>Z / Ctrl : Rotate CCW</p>
                 <p>SPACE : Hard Drop</p>
                 <p>C / SHIFT : Hold</p>
-                <p>ESC : Pause</p>
+                <p>ESC / F1 : Pause</p>
             </div>
         </div>
         <div class="game-area">
-            <div id="countdown">3</div>
             <canvas id="gameCanvas" width="300" height="600"></canvas>
-            <div id="gameOver" class="hidden">
+            
+            <div id="splash-screen" class="overlay">
+                <h1>TETRIS</h1>
+                <p>Press Start to Play</p>
+                <button id="start-btn">START GAME</button>
+            </div>
+
+            <div id="pause-overlay" class="overlay hidden">
+                <h2>PAUSED</h2>
+                <p>Press ESC to Resume</p>
+            </div>
+
+            <div id="gameOver" class="overlay hidden">
                 <h2>GAME OVER</h2>
                 <p>Press ENTER to restart</p>
             </div>
         </div>
     </div>
+    
     <div class="copyright">
         Tetris © 1985~2024 Tetris Holding. Tetris logos, Tetris theme song and Tetriminos are trademarks of Tetris Holding. The Tetris trade dress is owned by Tetris Holding. Licensed to The Tetris Company. Tetris Game Design by Alexey Pajitnov. Tetris Logo Design by Roger Dean. All Rights Reserved.
     </div>
     
-    <!-- Audio (you need to add korobeiniki.mp3 file) -->
     <audio id="bgMusic" loop>
         <source src="korobeiniki.mp3" type="audio/mpeg">
     </audio>
     
-    <script src="my_tetris.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

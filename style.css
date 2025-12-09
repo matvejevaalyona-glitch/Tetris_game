@@ -145,21 +145,29 @@ h1 {
   display: none !important;
 }
 
-#start-btn {
+.mode-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.mode-btn {
     padding: 15px 30px;
-    font-size: 24px;
+    font-size: 20px;
     background: #00f0f0;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     font-weight: bold;
     color: #000;
-    margin-top: 20px;
-    transition: transform 0.2s;
+    transition: transform 0.2s, background 0.2s;
+    width: 250px;
 }
 
-#start-btn:hover {
+.mode-btn:hover {
     transform: scale(1.05);
+    background: #fff;
 }
 
 #gameOver h2 {
@@ -171,6 +179,18 @@ h1 {
 #gameOver p {
   font-size: 20px;
   color: #ccc;
+}
+
+#countdown h1 {
+  font-size: 100px;
+  color: #fff;
+  text-shadow: 0 0 20px #00f0f0;
+  animation: pulse 0.5s infinite alternate;
+}
+
+@keyframes pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
 }
 
 /* Copyright */

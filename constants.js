@@ -28,7 +28,7 @@ export const COLORS = {
 };
 
 export const SHAPES = {
-    I: [[0, 0], [0, 1], [0, 2], [0, 3]],
+    I: [[1, 0], [1, 1], [1, 2], [1, 3]],
     O: [[0, 0], [0, 1], [1, 0], [1, 1]],
     T: [[0, 1], [1, 0], [1, 1], [1, 2]],
     S: [[0, 1], [0, 2], [1, 0], [1, 1]],
@@ -40,12 +40,12 @@ export const SHAPES = {
 // Offsets for spawn positions (approximate centering)
 export const SPAWN_OFFSETS = {
     I: {x: 3, y: 19}, // Spawns at 20th/21st row (index 19/20) - hidden area
-    O: {x: 4, y: 19},
-    T: {x: 3, y: 19},
-    S: {x: 3, y: 19},
-    Z: {x: 3, y: 19},
-    J: {x: 3, y: 19},
-    L: {x: 3, y: 19},
+    O: {x: 4, y: 18},
+    T: {x: 3, y: 18},
+    S: {x: 3, y: 18},
+    Z: {x: 3, y: 18},
+    J: {x: 3, y: 18},
+    L: {x: 3, y: 18},
 };
 
 // SRS Wall Kicks

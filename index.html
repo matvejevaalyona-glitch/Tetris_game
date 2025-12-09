@@ -48,8 +48,12 @@
             
             <div id="splash-screen" class="overlay">
                 <h1>TETRIS</h1>
-                <p>Press Start to Play</p>
-                <button id="start-btn">START GAME</button>
+                <p>Select Game Mode</p>
+                <div class="mode-buttons">
+                    <button id="btn-marathon" class="mode-btn">MARATHON</button>
+                    <button id="btn-sprint" class="mode-btn">SPRINT (40L)</button>
+                    <button id="btn-ultra" class="mode-btn">ULTRA (2min)</button>
+                </div>
             </div>
 
             <div id="pause-overlay" class="overlay hidden">
@@ -60,6 +64,10 @@
             <div id="gameOver" class="overlay hidden">
                 <h2>GAME OVER</h2>
                 <p>Press ENTER to restart</p>
+            </div>
+
+            <div id="countdown" class="overlay hidden">
+                <h1>3</h1>
             </div>
         </div>
     </div>
@@ -72,6 +80,6 @@
         <source src="korobeiniki.mp3" type="audio/mpeg">
     </audio>
     
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="my_tetris.js"></script>
 </body>
 </html>

@@ -36,48 +36,74 @@ export class AudioManager {
 
         switch (type) {
             case 'move':
-                // Short ticks
+                // Short, crisp tick (Square wave)
                 osc.type = 'square';
-                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.setValueAtTime(300, now);
                 gainNode.gain.setValueAtTime(0.05, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.03);
+                osc.start(now);
+                osc.stop(now + 0.03);
+                break;
+                
+            case 'walltouch':
+                // Dull low thud (noise or low freq)
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+                break;
+
+            case 'rotate':
+                // High blip
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, now);
+                gainNode.gain.setValueAtTime(0.08, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+                break;
+                
+            case 'softdrop':
+                // Very soft tick
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                gainNode.gain.setValueAtTime(0.03, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.03);
+                osc.start(now);
+                osc.stop(now + 0.03);
+                break;
+                
+            case 'harddrop':
+                // Whoosh-Slam effect
+                // 1. Whoosh (noise-like? using high freq slide down)
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                gainNode.gain.setValueAtTime(0.15, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+                break;
+
+            case 'land':
+                // Light thud when touching ground
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, now);
+                gainNode.gain.setValueAtTime(0.1, now);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
                 osc.start(now);
                 osc.stop(now + 0.05);
                 break;
                 
-            case 'rotate':
-                // Higher pitched blip
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(600, now);
-                gainNode.gain.setValueAtTime(0.1, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
-                break;
-                
-            case 'softdrop':
-                osc.frequency.setValueAtTime(500, now);
-                gainNode.gain.setValueAtTime(0.05, now);
-                osc.start(now);
-                osc.stop(now + 0.05);
-                break;
-                
-            case 'land':
-                // Thud
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(200, now);
-                osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
-                gainNode.gain.setValueAtTime(0.2, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
-                break;
-                
             case 'lock':
-                // Hard click
+                // Mechanical distinct locking sound
                 osc.type = 'square';
-                osc.frequency.setValueAtTime(800, now);
-                gainNode.gain.setValueAtTime(0.1, now);
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+                gainNode.gain.setValueAtTime(0.2, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
                 osc.start(now);
                 osc.stop(now + 0.05);
                 break;
@@ -92,7 +118,7 @@ export class AudioManager {
                 osc.start(now);
                 osc.stop(now + 0.3);
                 break;
-
+            
             case 'tetris':
                 // Success chord
                 this.playTone(800, 0, 0.4);

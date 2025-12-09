@@ -36,7 +36,7 @@ export class Controller {
             this.game.gameState.isSoftDropping = true;
         } else if (KEYS.HARD_DROP.includes(key)) {
             event.preventDefault(); // Prevent page scroll
-            this.game.gameState.hardDrop();
+            this.game.performHardDrop();
         } else if (KEYS.ROTATE_CW.includes(key)) {
             this.game.gameState.rotate(1);
         } else if (KEYS.ROTATE_CCW.includes(key)) {

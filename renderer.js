@@ -106,21 +106,18 @@ export class Renderer {
         this.nextCtx.fillStyle = '#000';
         this.nextCtx.fillRect(0, 0, this.nextCtx.canvas.width, this.nextCtx.canvas.height);
         
-        // Draw top 1 next piece primarily, maybe others smaller?
-        // Req: "Must have 1 to 6 next pieces."
-        // Let's draw first 3 vertically
-        
-        let yOffset = 10;
-        const scale = 0.8;
+        let yOffset = 20;
+        const scale = 0.6; // Smaller scale to fit 6 pieces
          
-        nextPieces.slice(0, 3).forEach((type, idx) => {
+        nextPieces.slice(0, 6).forEach((type) => {
              const shape = SHAPES[type];
              const color = COLORS[type];
              
              this.nextCtx.save();
              this.nextCtx.scale(scale, scale);
-             // Centering logic
-             const offsetX = (this.nextCtx.canvas.width / scale - shape[0].length * BLOCK_SIZE) / 2 + 15;
+             // Centering logic accounting for scale
+             // Canvas width (100) / scale (0.6) = ~166 virtual pixels width
+             const offsetX = (this.nextCtx.canvas.width / scale - shape[0].length * BLOCK_SIZE) / 2;
              
              shape.forEach(([r, c]) => {
                  this.nextCtx.fillStyle = color;
@@ -129,6 +126,8 @@ export class Renderer {
                  this.nextCtx.strokeRect(offsetX + c * BLOCK_SIZE, yOffset + r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
              });
              this.nextCtx.restore();
+             // Spacing: shape height is variable (2 or 3 usually, * 30 * 0.6 = ~36-54px)
+             // Fixed step of 60px should work
              yOffset += 80;
         });
     }
@@ -152,6 +151,21 @@ export class Renderer {
                  this.holdCtx.fillRect(offsetX + c * BLOCK_SIZE, offsetY + r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
             });
             this.holdCtx.restore();
+        }
+    }
+    // Draw line clear animation (flash)
+    drawLineClearAnimation(clearingRows) {
+        if (!clearingRows || clearingRows.length === 0) return;
+        
+        const offsetRow = ROWS - VISIBLE_ROWS;
+        
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // Bright flash
+        
+        for (const r of clearingRows) {
+            const y = r - offsetRow;
+            if (y >= 0) {
+                this.ctx.fillRect(0, y * BLOCK_SIZE, this.width, BLOCK_SIZE);
+            }
         }
     }
 }

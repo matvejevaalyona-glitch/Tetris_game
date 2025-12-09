@@ -152,6 +152,14 @@ h1 {
     margin-top: 20px;
 }
 
+.game-logo {
+    max-width: 80%;
+    height: auto;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 240, 240, 0.5);
+}
+
 .mode-btn {
     padding: 15px 30px;
     font-size: 20px;

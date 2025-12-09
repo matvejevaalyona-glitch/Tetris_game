@@ -58,7 +58,49 @@ class Game {
         });
     }
     
-    // ... togglePause and startCountdown ...
+    togglePause() {
+        if (this.isCountingDown) return;
+
+        this.isPaused = !this.isPaused;
+        if (this.isPaused) {
+            this.audioManager.pauseMusic();
+            document.getElementById('pause-overlay').classList.remove('hidden');
+        } else {
+            document.getElementById('pause-overlay').classList.add('hidden');
+            this.startCountdown(() => {
+                this.audioManager.playMusic();
+                this.lastTime = performance.now(); 
+                this.loop();
+            });
+        }
+    }
+
+    startCountdown(onComplete) {
+        this.isCountingDown = true;
+        let count = 3;
+        const countdownEl = document.getElementById('countdown');
+        const countdownText = countdownEl.querySelector('h1');
+        countdownEl.classList.remove('hidden');
+        countdownText.textContent = count;
+        
+        // Reset timer tracking vars on resume/start
+        // If resuming, we don't reset gameTimer.
+        // If restarting, logic in callback handles new State.
+        
+        const timer = setInterval(() => {
+            count--;
+            if (count > 0) {
+                 countdownText.textContent = count;
+            } else {
+                 clearInterval(timer);
+                 countdownEl.classList.add('hidden');
+                 this.isCountingDown = false;
+                 // Reset lastTime to avoid huge delta
+                 this.lastTime = performance.now();
+                 if (onComplete) onComplete();
+            }
+        }, 1000);
+    }
 
     loop(time = 0) {
         if (this.isPaused) return;
@@ -103,12 +145,22 @@ class Game {
             
             this.dropCounter += deltaTime;
             
-            // Calculate speed based on level
-            const speed = Math.max(50, Math.pow(0.8 - ((this.gameState.level - 1) * 0.007), this.gameState.level - 1) * 1000);
+            // Calculate speed based on level using Tetris Worlds formula
+            // Seconds per line = (0.8 - ((Level - 1) * 0.007)) ^ (Level - 1)
+            // convert to ms
+            const level = this.gameState.level;
+            const secondsPerRow = Math.pow(0.8 - ((level - 1) * 0.007), level - 1);
+            const speed = secondsPerRow * 1000;
             
             if (this.dropCounter > speed) {
-                if (!this.gameState.move(0, 1)) {
-                    this.gameState.lock();
+                // If not animating...
+                if (!this.isAnimating) {
+                    const result = this.gameState.move(0, 1) ? 'MOVED' : this.gameState.lock();
+                    
+                    if (result === 'CLEARED') {
+                        // Start animation
+                        this.triggerClearAnimation();
+                    }
                 }
                 this.dropCounter = 0;
             }
@@ -119,7 +171,33 @@ class Game {
 
         this.updateUI();
         this.renderer.render(this.gameState);
+        
+        // Render animation overlay if animating
+        if (this.isAnimating && this.gameState.clearingRows) {
+            this.renderer.drawLineClearAnimation(this.gameState.clearingRows);
+        }
+        
         requestAnimationFrame(this.loop.bind(this));
+    }
+
+    performHardDrop() {
+        if (this.isPaused || this.gameState.gameOver || this.isAnimating) return;
+        
+        const result = this.gameState.hardDrop();
+        if (result === 'CLEARED') {
+            this.triggerClearAnimation();
+        }
+        this.dropCounter = 0; // Reset drop counter after hard drop
+        this.updateUI(); // Immediate update
+        this.renderer.render(this.gameState);
+    }
+
+    triggerClearAnimation() {
+        this.isAnimating = true;
+        this.animationTimer = setTimeout(() => {
+             this.gameState.finalizeClear();
+             this.isAnimating = false;
+        }, 300);
     }
 
     togglePause() {

@@ -261,7 +261,7 @@ export class TetrisLogic {
         }
         this.score += dropped * SCORING.HARD_DROP;
         if (this.audio) this.audio.playSound('harddrop');
-        this.lock();
+        return this.lock();
     }
 
     softDrop() {
@@ -287,32 +287,92 @@ export class TetrisLogic {
         
         if (this.audio) this.audio.playSound('lock');
         
-        // Check for line clears
-        this.clearLines();
+        // Detect T-Spin before anything (needed for scoring later)
+        this.lastMoveTSpin = false;
+        if (this.currentPiece.type === 'T') {
+             // ... T-Spin logic (same as previous)
+             // Corners of the T-piece 3x3 box: (0,0), (0,2), (2,2), (2,0)
+             // Check occupied against board?
+             const corners = [[0,0], [0,2], [2,2], [2,0]];
+             let occupied = 0;
+             for (const [cy, cx] of corners) {
+                 const worldX = this.currentPiece.x + cx;
+                 const worldY = this.currentPiece.y + cy;
+                 if (worldX < 0 || worldX >= COLS || worldY >= ROWS || (worldY >= 0 && this.board[worldY][worldX])) {
+                     occupied++;
+                 }
+             }
+             if (occupied >= 3 && this.lastAction === 'rotate') {
+                 this.lastMoveTSpin = true;
+             }
+        }
         
-        // Check for Lock Out (if locked completely above visible area)
-        // Visible area starts at index ROWS - VISIBLE_ROWS = 20.
-        // If all blocks are < 20, game over.
+        // Check for line clears
+        if (this.checkForLines()) {
+            return 'CLEARED'; // Signal to external loop to animate
+        }
+        
+        // Check for Lock Out
         const isLockOut = this.currentPiece.shape.every(([r, c]) => (this.currentPiece.y + r) < (ROWS - VISIBLE_ROWS));
         
         if (isLockOut) {
             this.gameOver = true;
             if (this.audio) this.audio.playSound('gameover');
-            return;
+            return 'GAMEOVER';
+        }
+
+        // Standard continuation
+        // If no lines cleared, check combo fail?
+        // Wait, logic says combo resets on clearLines usually if 0 cleared.
+        // We need to handle 0-line scoring or resets somewhere.
+        // If T-Spin with 0 lines?
+        if (this.lastMoveTSpin) {
+            // Scoring for T-Spin No Lines
+            // Should be handled here? Or we only handle if cleared?
+            // "T-Spin No Line" awards points.
+            // Let's direct call scoring for 0 lines here?
+            // Or we treat it as a "clear" of 0 lines structure?
+            // For simplicity, handle minimal 0-line scoring here:
+            let baseScore = SCORING.TSPIN;
+             if (this.isBackToBack) baseScore *= SCORING.BACK_TO_BACK_MULTIPLIER;
+             // But T-Spin No Line doesn't set B2B, just uses it? 
+             // "T-Spin Mini" etc rules are complex.
+             // Implemented simple:
+             this.score += baseScore * this.level;
+             if (this.audio) this.audio.playSound('rotate');
+        } else {
+             this.combo = -1; // Reset combo on normal lock
         }
 
         this.spawnPiece();
+        return 'LOCKED';
     }
 
-    clearLines() {
-        let linesCleared = 0;
+    // Returns true if lines are detected and set for clearing
+    checkForLines() {
+        this.clearingRows = [];
         for (let r = ROWS - 1; r >= 0; r--) {
             if (this.board[r].every(cell => cell !== 0)) {
-                this.board.splice(r, 1);
-                this.board.unshift(new Array(COLS).fill(0));
-                linesCleared++;
-                r++; // Check same index again since lines shifted down
+                this.clearingRows.push(r);
             }
+        }
+        return this.clearingRows.length > 0;
+    }
+
+    finalizeClear() {
+        if (!this.clearingRows || this.clearingRows.length === 0) return;
+        
+        // Remove rows from board
+        // Sort effectively (highest index first/lowest?)
+        // Clearing logic: Remove row, add new empty at top.
+        // Doing strictly from sorted list (DESC) prevents index shift issues if standard splice
+        this.clearingRows.sort((a, b) => b - a); // 39, 38...
+        
+        let linesCleared = this.clearingRows.length;
+        
+        for (const r of this.clearingRows) {
+            this.board.splice(r, 1);
+            this.board.unshift(new Array(COLS).fill(0));
         }
         
         if (linesCleared > 0) {
@@ -320,87 +380,14 @@ export class TetrisLogic {
             
             // Level calculation
             const fixedGoal = 10;
-            // Variable goal: 5 * level (cumulative lines needed to pass level L is sum(5*i)... handled simply by current total lines?) 
-            // Previous logic: if lines >= level * 5. This implies:
-            // Lvl 1->2: 5 lines total.
-            // Lvl 2->3: 10 lines total. (Gap 5)
-            // Lvl 3->4: 15 lines total. (Gap 5)
-            // Wait, "Variable goal is 5 times the level number" usually means the *gap* increases.
-            // Tetris Worlds: Lvl 1 needs 5, Lvl 2 needs 10, etc.
-            // My previous code: this.lines >= this.level * 5. This makes gaps constant 5.
-            // e.g. Level=1. Lines=5 >= 5 -> Level=2.
-            // Level=2. Lines=10 >= 10 -> Level=3.
-            // Gap is always 5.
-            // If the Requirement meant "Goal for next level is 5*Level", then Lvl 1 goal 5 (Total 5). Lvl 2 goal 10 (Total 15).
-            // Let's stick to the simpler interpretation unless specified: Constant gap of 5 vs Fixed Gap of 10.
-            // Or implement strict "Variable Goal" where gap = level * 5.
-            // "Variable goal is 5 times the level number."
-            // Let's assume this means the required lines to clear the CURRENT level is 5 * CurrentLevel.
-            
-            // To support switching, I'll add a simple toggle in the code or default to Fixed if standard is requested?
-            // "Implement ... supporting both"
-            // I will use a flag logic.variableGoal = true/false.
-            // Default to Variable as it was there.
-            
-            const isVariableMode = true; // Could be passed in constructor
-            
-            let linesNeeded;
-            if (isVariableMode) {
-                 // Example: Level 1 needs 5 lines. Total 5.
-                 // Level 2 needs 10 lines. Total 15.
-                 // Level 3 needs 15 lines. Total 30.
-                 // This matches "Variable goal is 5 * level" (gap increases).
-                 // Implementation:
-                 // basic formula for total lines to reach level L+1:
-                 // Sum(5 * i) for i=1 to L. = 5 * L * (L+1) / 2.
-                 // Check if total lines >= Sum for current level.
-                 
-                 // However, my previous code was: lines >= level * 5.
-                 // This meant gaps were constant.
-                 // Let's do the "Increasing Gap" style if "Variable" is requested properly.
-                 // But for safety/simplicity to match previous behavior if user liked it:
-                 // Let's implement Configurable Fixed vs Variable.
-                 
-                 // Let's compute 'linesForNextLevel'.
-                 // Variable: (this.level * 5) lines in this level.
-                 
-                 // Use a stored property or calculate from total?
-                 // Let's track 'linesInCurrentLevel'.
-            }
-
-            // Simplest implementation of "Both":
-            // Fixed: 10 lines per level.
-            // Variable: 5 * Level lines per level.
-            
-            // I'll stick to a simple strategy update for now without complicated state refactor:
-            
-            // Mode 1: Fixed
-            // if (this.lines >= this.level * 10) -> NO, this.lines is total.
-            // (this.lines - (this.level - 1) * 10) >= 10
-            
-            // Mode 2: Variable (Gap 5)
-            // (this.lines - (this.level-1)*5) >= 5
-            
-            // Mode 3: Variable Increasing (Gap = Level * 5)
-            // Implementation:
-            // Let's go with Fixed 10 vs Fixed 5 for now from code context, 
-            // or interpret "Variable goal is 5 times the level number" literally as GAP = 5*L.
-            
-            // I will implement "Gap = 5*Level" for variable, and "Gap = 10" for fixed.
-            // And use a flag.
-            
-            // NOTE: Since I can't change constructor signature easily without breaking main.js which instantiates it,
-            // I'll default to Variable (since requirement emphasizes it) but add code to easy swap to Fixed.
-            
-            const FIXED_GOAL = 10;
-            const USE_FIXED = false; // Toggle here.
+            const isVariableMode = true; 
             
             let goal;
+            // ... (Goal logic simplified or copied) ...
+             const USE_FIXED = false; 
             if (USE_FIXED) {
                 goal = this.level * FIXED_GOAL;
             } else {
-                // Variable: Sum of 5*i
-                // L=1 -> 5. L=2 -> 5+10=15. L=3 -> 15+15=30.
                 goal = (5 * this.level * (this.level + 1)) / 2;
             }
             
@@ -409,41 +396,28 @@ export class TetrisLogic {
                 if (this.audio) this.audio.playSound('levelup');
             }
             
-            // T-Spin Detection
-            let isTSpin = false;
-            if (this.currentPiece.type === 'T') {
-                // 3-corner rule
-                // Corners of the T-piece 3x3 box: (0,0), (0,2), (2,2), (2,0)
-                // If >= 3 corners are filled (board or OOB), it's a T-Spin.
-                // Center is (1,1) in local coords.
-                const corners = [[0,0], [0,2], [2,2], [2,0]];
-                let occupied = 0;
-                for (const [cy, cx] of corners) {
-                    const worldX = this.currentPiece.x + cx;
-                    const worldY = this.currentPiece.y + cy;
-                    if (worldX < 0 || worldX >= COLS || worldY >= ROWS || (worldY >= 0 && this.board[worldY][worldX])) {
-                        occupied++;
-                    }
-                }
-                // Also requires last action to be a rotation
-                if (occupied >= 3 && this.lastAction === 'rotate') {
-                    isTSpin = true;
-                }
-            }
-
-            // Scoring
+            // T-Spin Scoring Logic (requires state from before clear?)
+            // We need to know if the last move was T-spin and apply accurate scoring.
+            // But this.currentPiece is already locked? 
+            // Wait, finalizeClear is called later. The piece is already on board.
+            // T-state detection should ideally happen BEFORE or DURING lock.
+            // Let's store `isTSpin` in a property during lock/before clear delay?
+            
             let baseScore = 0;
             let difficult = false;
+            
+            // Use this.lastMoveTSpin if we saved it
+            const isTSpin = this.lastMoveTSpin || false;
 
             if (isTSpin) {
                 difficult = true;
                 switch(linesCleared) {
-                    case 0: baseScore = SCORING.TSPIN; break; // T-Spin No Line
+                    case 0: baseScore = SCORING.TSPIN; break; 
                     case 1: baseScore = SCORING.TSPIN_SINGLE; break;
                     case 2: baseScore = SCORING.TSPIN_DOUBLE; break;
                     case 3: baseScore = SCORING.TSPIN_TRIPLE; break;
                 }
-                if (this.audio) this.audio.playSound('tetris'); // T-spin sound (same as efficient clear?) or separate
+                if (this.audio) this.audio.playSound('tetris'); 
             } else {
                 switch(linesCleared) {
                     case 1: baseScore = SCORING.SINGLE; break;
@@ -460,38 +434,33 @@ export class TetrisLogic {
             if (difficult) {
                 if (this.isBackToBack) {
                     baseScore *= SCORING.BACK_TO_BACK_MULTIPLIER;
-                    // B2B Sound effect?
                 }
                 this.isBackToBack = true;
-            } else if (linesCleared > 0) {
-                // Clearing lines without difficulty breaks B2B
+            } else {
                 this.isBackToBack = false;
             }
-            // Note: T-Spin No Line does NOT break B2B in some guidelines, breaks in others.
-            // Standard Guideline: Only line clears affect B2B status. 
-            // If T-Spin No Line, B2B status is unchanged?
-            // Actually usually only "Difficult Line Clears" trigger B2B. A non-difficult clear breaks it.
-            // A non-clear (Lock without clear) does not break it.
             
             this.score += baseScore * this.level;
             
-            if (linesCleared > 0) {
-                 if (this.audio && !isTSpin) this.audio.playSound(linesCleared >= 4 ? 'tetris' : 'clear');
-                 this.combo++;
-                 if (this.combo > 0) {
-                     this.score += this.combo * SCORING.COMBO_MULTIPLIER * this.level;
-                 }
-            } else {
-                 if (isTSpin && this.audio) this.audio.playSound('rotate'); // Special sound for T-spin 0 lines?
-                 // No line cleared, combo reset?
-                 // Usually combo resets on lock without clear.
-                 this.combo = -1;
-            }
-        } else {
-            this.combo = -1;
+            if (this.audio && !isTSpin) this.audio.playSound(linesCleared >= 4 ? 'tetris' : 'clear');
+             this.combo++;
+             if (this.combo > 0) {
+                 this.score += this.combo * SCORING.COMBO_MULTIPLIER * this.level;
+             }
         }
+        
+        this.clearingRows = []; // Cleanup
+        this.lastMoveTSpin = false;
+        
+        // Spawn done by caller? Or here? 
+        // Logic flow: Lock -> Check -> (Delay) -> Finalize -> Spawn.
+        // So Finalize should Spawn.
+        this.spawnPiece();
     }
     
+    // Stub for replacement compat
+    clearLines() {}
+
     getGhostY() {
         if (!this.currentPiece) return 0;
         let ghostY = this.currentPiece.y;
